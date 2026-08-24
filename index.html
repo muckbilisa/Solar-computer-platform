@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOLARIS LUX PRO</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-white flex justify-center">
+<div class="w-full max-w-[430px] bg-[#0a0a0a] min-h-screen pb-20">
+
+<div class="p-5 flex justify-between items-center">
+<div><h1 class="text-xl font-black text-yellow-100">SOLARIS LUX PRO</h1><p class="text-[8px] text-zinc-500">PREMIUM • GLOBAL • LUX</p></div>
+<div class="text-2xl">🔔</div>
+</div>
+
+<div class="mx-4 bg-gradient-to-br from-[#D4AF37] to-[#B8962E] rounded-2xl p-4 text-black border-2 border-yellow-300">
+<p class="text-center text-[11px] font-bold">BIG PROMO ENDS IN</p>
+<p id="timer" class="text-center text-3xl font-black">30 DAYS 12:45:30</p>
+<div class="flex gap-2 mt-3">
+<div class="flex-1 bg-black text-white rounded-xl p-2 text-center"><p class="text-[9px] text-yellow-400">DAYS</p><p id="d" class="text-2xl font-black">30</p></div>
+<div class="flex-1 bg-black text-white rounded-xl p-2 text-center"><p class="text-[9px] text-yellow-400">HOURS</p><p id="h" class="text-2xl font-black">12</p></div>
+<div class="flex-1 bg-black text-white rounded-xl p-2 text-center"><p class="text-[9px] text-yellow-400">MIN</p><p id="m" class="text-2xl font-black">45</p></div>
+</div>
+<p class="text-center text-[10px] mt-2">One-Month Promo • +237 680100992 Verified • Global</p>
+</div>
+
+<div class="p-4">
+<h2 class="text-center text-yellow-100 font-bold text-sm mt-4">GLOBAL ABOUT</h2>
+<div class="mt-3 bg-zinc-900 border border-yellow-500/20 rounded-2xl p-4">
+<p class="text-sm font-bold">Welcome to The Smartest Solar Marketplace</p>
+<p class="text-[12px] text-zinc-300 mt-2">We are PLATFORM where you are the boss!</p>
+<p class="text-yellow-400 font-black text-xs mt-2">Create. Explore. Earn. Shop.</p>
+<div class="grid grid-cols-2 gap-2 mt-4">
+<div onclick="document.getElementById('shopsec').scrollIntoView({behavior:'smooth'})" class="bg-black border border-yellow-500/30 rounded-xl p-3 text-xs font-bold cursor-pointer">☀️ Create</div>
+<div onclick="document.getElementById('shopsec').scrollIntoView({behavior:'smooth'})" class="bg-black border border-yellow-500/30 rounded-xl p-3 text-xs font-bold cursor-pointer">🧭 Explore</div>
+<div onclick="alert('Invite & Earn: solarislux.app/invite/SOLAR-9X2K7M\nEarn up to 20,000F per sale!')" class="bg-black border border-yellow-500/30 rounded-xl p-3 text-xs font-bold cursor-pointer">💰 Earn - 45,250F</div>
+<div onclick="document.getElementById('shopsec').scrollIntoView({behavior:'smooth'})" class="bg-black border border-yellow-500/30 rounded-xl p-3 text-xs font-bold cursor-pointer">🛒 Shop</div>
+</div>
+<button onclick="let p=[50,100,150,200][Math.floor(Math.random()*4)];alert('🎡 You WON '+p+' Points!')" class="w-full mt-4 bg-yellow-400 text-black font-black py-3 rounded-xl">🎡 SPIN WHEEL</button>
+</div>
+</div>
+
+<div id="shopsec" class="p-3">
+<p class="text-center text-[10px] text-zinc-500">Tap Buy to Pay MoMo Directly</p>
+<div class="grid grid-cols-3 gap-2 mt-3">
+<div class="bg-zinc-900 border border-yellow-500/30 rounded-xl p-2"><p class="text-[10px] font-bold h-8">Solar Panel Mini</p><p class="text-yellow-400 font-black text-sm">3,000F</p><p class="text-[8px] text-green-400">Refer 1,000F</p><button onclick="buy('Panel Mini','3000')" class="w-full mt-1 bg-yellow-400 text-black text-[9px] font-black py-2 rounded-lg">Buy MoMo</button></div>
+<div class="bg-zinc-900 border border-yellow-500/30 rounded-xl p-2"><p class="text-[10px] font-bold h-8">Solar Charger</p><p class="text-yellow-400 font-black text-sm">5,000F</p><p class="text-[8px] text-green-400">Refer 2,000F</p><button onclick="buy('Charger','5000')" class="w-full mt-1 bg-yellow-400 text-black text-[9px] font-black py-2 rounded-lg">Buy MoMo</button></div>
+<div class="bg-zinc-900 border border-yellow-500/30 rounded-xl p-2"><p class="text-[10px] font-bold h-8">LED Light</p><p class="text-yellow-400 font-black text-sm">10,000F</p><p class="text-[8px] text-green-400">Refer 3,300F</p><button onclick="buy('LED Light','10000')" class="w-full mt-1 bg-yellow-400 text-black text-[9px] font-black py-2 rounded-lg">Buy MoMo</button></div>
+<div class="bg-zinc-900 border border-yellow-500/30 rounded-xl p-2"><p class="text-[10px] font-bold h-8">Power Bank</p><p class="text-yellow-400 font-black text-sm">15,000F</p><p class="text-[8px] text-green-400">Refer 5,000F</p><button onclick="buy('Power Bank','15000')" class="w-full mt-1 bg-yellow-400 text-black text-[9px] font-black py-2 rounded-lg">Buy MoMo</button></div>
+<div class="bg-zinc-900 border border-yellow-500/30 rounded-xl p-2"><p class="text-[10px] font-bold h-8">Home Kit</p><p class="text-yellow-400 font-black text-sm">20,000F</p><p class="text-[8px] text-green-400">Refer 7,750F</p><button onclick="buy('Home Kit','20000')" class="w-full mt-1 bg-yellow-400 text-black text-[9px] font-black py-2 rounded-lg">Buy MoMo</button></div>
+<div class="bg-zinc-900 border border-yellow-500/30 rounded-xl p-2"><p class="text-[10px] font-bold h-8">Inverter 500W</p><p class="text-yellow-400 font-black text-sm">30,000F</p><p class="text-[8px] text-green-400">Refer 9,000F</p><button onclick="buy('Inverter','30000')" class="w-full mt-1 bg-yellow-400 text-black text-[9px] font-black py-2 rounded-lg">Buy MoMo</button></div>
+<div class="bg-zinc-900 border border-yellow-500/30 rounded-xl p-2"><p class="text-[10px] font-bold h-8">Panel 200W</p><p class="text-yellow-400 font-black text-sm">50,000F</p><p class="text-[8px] text-green-400">Refer 12,000F</p><button onclick="buy('Panel 200W','50000')" class="w-full mt-1 bg-yellow-400 text-black text-[9px] font-black py-2 rounded-lg">Buy MoMo</button></div>
+<div class="bg-zinc-900 border border-yellow-500/30 rounded-xl p-2"><p class="text-[10px] font-bold h-8">Battery 100Ah</p><p class="text-yellow-400 font-black text-sm">80,000F</p><p class="text-[8px] text-green-400">Refer 16,000F</p><button onclick="buy('Battery','80000')" class="w-full mt-1 bg-yellow-400 text-black text-[9px] font-black py-2 rounded-lg">Buy MoMo</button></div>
+<div class="bg-zinc-900 border border-yellow-500/30 rounded-xl p-2"><p class="text-[10px] font-bold h-8">System Kit</p><p class="text-yellow-400 font-black text-sm">100,000F</p><p class="text-[8px] text-green-400">Refer 20,000F</p><button onclick="buy('System Kit','100000')" class="w-full mt-1 bg-yellow-400 text-black text-[9px] font-black py-2 rounded-lg">Buy MoMo</button></div>
+</div>
+</div>
+
+<div class="p-4">
+<div class="bg-zinc-900 border-2 border-yellow-500/40 rounded-2xl p-4 text-center"><p class="text-[11px] text-zinc-400">Total Earnings</p><p class="text-4xl font-black text-yellow-300">45,250 FCFA</p></div>
+<button onclick="navigator.clipboard.writeText('680100992');alert('Copied 680100992')" class="w-full mt-3 bg-black border border-yellow-500/40 rounded-xl p-3 text-[11px]">solarislux.app/invite/SOLAR-9X2K7M 📋 Tap to Copy</button>
+<button onclick="alert('Min 1,000F Max 50,000F - 24H MoMo')" class="w-full mt-3 bg-yellow-400 text-black font-black py-3 rounded-xl">Withdraw Funds</button>
+<button onclick="window.location.href='tel:680100992'" class="w-full mt-2 bg-green-600 text-white font-black py-3 rounded-xl">📲 MoMo Pay: 680100992 - TAP TO PAY</button>
+<p class="text-center text-[11px] mt-2">✅ +237 680100992 Verified</p>
+</div>
+
+</div>
+<script>
+let d=30,h=12,m=45,s=30;
+setInterval(()=>{if(s>0)s--;else if(m>0){m--;s=59;}else if(h>0){h--;m=59;s=59;}else if(d>0){d--;h=23;m=59;s=59;}else{d=30;h=12;m=45;s=30;}
+document.getElementById('timer').innerText=d+' DAYS '+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+document.getElementById('d').innerText=d;document.getElementById('h').innerText=h;document.getElementById('m').innerText=m;
+},1000);
+function buy(name,price){
+let momo="680100992";
+if(confirm('Buy '+name+' for '+price+'F?\n\nPay MoMo to +237 680100992\n\nOK to pay now?')){
+navigator.clipboard.writeText(momo);
+alert('Number COPIED: '+momo+'\nOpening dialer...');
+window.location.href="tel:"+momo;
+}
+}
+</script>
+</body>
+</html>
