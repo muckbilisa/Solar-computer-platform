@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SOLARIS LUX</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{background:#0f0f0f;color:#fff}.gold{background:#FFD60A;color:#000}.dark-card{background:#1c1c1e;border-radius:16px}.active{color:#FFD60A}</style>
+</head>
+<body class="pb-20 max-w-md mx-auto">
+<script>
+// ONE-LINE CONTROL
+const OWNER_CONFIG={
+ momoNumber:"+237 680 100 992",
+ momoName:"SOLARIS LUX",
+ minDailySales:50000,
+ referralPercent:10
+};
+const firebaseConfig={
+ apiKey:"YOUR_API_KEY",
+ authDomain:"YOUR_PROJECT.firebaseapp.com",
+ projectId:"YOUR_PROJECT_ID",
+ storageBucket:"YOUR_PROJECT.appspot.com",
+ messagingSenderId:"123",
+ appId:"YOUR_APP_ID"
+};
+</script>
+
+<div class="p-3 flex justify-between items-center">
+<h1 class="font-black">⚡ SOLARIS LUX</h1>
+<span class="gold text-[10px] px-2 py-1 rounded-full font-bold">MoMo +237 680 100 992</span>
+</div>
+
+<!-- HOME -->
+<div id="tab-home">
+<div id="products" class="grid grid-cols-2 gap-3 p-3"></div>
+</div>
+
+<!-- TASK - FUN SITES -->
+<div id="tab-task" class="hidden p-3 space-y-3">
+<div class="dark-card p-4"><h2 class="font-bold text-sm">📋 Daily Tasks To Unlock Bonus</h2>
+<div class="mt-3 space-y-2 text-xs">
+<div class="bg-black p-3 rounded-xl flex justify-between"><span>Buy FULL product</span><b id="t1" class="text-yellow-400">0/1</b></div>
+<div class="bg-black p-3 rounded-xl flex justify-between"><span>Share link (WhatsApp/TikTok)</span><b id="t2" class="text-yellow-400">0/1</b></div>
+<div class="bg-black p-3 rounded-xl flex justify-between"><span>Refer 1 friend who pays FULL</span><b id="t3" class="text-yellow-400">0/1</b></div>
+<div class="bg-black p-3 rounded-xl flex justify-between"><span>Wait 24hrs + Sales good</span><b id="t4" class="text-yellow-400">Locked</b></div>
+</div></div>
+
+<div class="dark-card p-4"><h2 class="font-bold text-sm">🧠 Learn - Solar Quiz</h2><p class="text-xs mt-2">What powers solar panel? A) Sun B) Water</p><button onclick="alert('Correct! +50 XP')" class="gold w-full mt-2 py-2 rounded-xl text-xs font-bold">Answer A</button></div>
+
+<div class="dark-card p-4"><h2 class="font-bold text-sm">🔋 Builder - Global System</h2><p class="text-center text-2xl my-2">🏠 + ☀️ = 💡</p><p class="text-xs">Panels: <span id="pan" class="font-black">4</span> = <span id="est" class="text-yellow-400">1.6 kWh/day</span> - Ships Worldwide</p></div>
+
+<div class="dark-card p-4"><h2 class="font-bold text-sm">🌍 Global Impact</h2><p class="text-xl font-black mt-2">4.2M kWh Saved</p><p class="text-[10px] opacity-60">USA,
