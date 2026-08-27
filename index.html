@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Solar Platform - Order</title>
+</head>
+<body>
+  <h2>Solar Order Form</h2>
+  <input id="name" placeholder="Client Name" /><br><br>
+  <input id="phone" placeholder="Phone Number" /><br><br>
+  <button id="saveBtn">Save Order</button>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPeaYd1u9Hm6PqU5HUKN4oT8FYpMejyx0",
+      authDomain: "solar-platform-4e199.firebaseapp.com",
+      projectId: "solar-platform-4e199",
+      storageBucket: "solar-platform-4e199.firebasestorage.app",
+      messagingSenderId: "1064154251819",
+      appId: "1:1064154251819:web:e608ad854c06fef73b606e",
+      measurementId: "G-Z0V28X2YLJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    document.getElementById('saveBtn').onclick = async () => {
+      const name = document.getElementById('name').value;
+      const phone = document.getElementById('phone').value;
+      
+      await addDoc(collection(db, "orders"), {
+        name: name,
+        phone: phone,
+        createdAt: new Date()
+      });
+      
+      alert("Order saved to your database! ✅");
+    };
+  </script>
+</body>
+</html>
