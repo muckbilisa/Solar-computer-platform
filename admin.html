@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Solar Admin - Orders</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial;padding:20px;background:#f5f5f5}
+h1{color:#ff9800}
+.order{background:white;padding:15px;margin:10px 0;border-radius:10px;box-shadow:0 2px 5px #0002}
+button{background:red;color:white;border:0;padding:5px 10px;border-radius:5px;margin-top:8px}
+a{color:#ff9800;text-decoration:none;font-weight:bold}
+</style>
+</head>
+<body>
+<h1>📦 Solar Orders - Admin</h1>
+<a href="/">← Back to Order Form</a>
+<div id="orders" style="margin-top:15px">Loading orders...</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, deleteDoc, doc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBPeaYd1u9Hm6PqU5HUKN4oT8FYpMejyx0",
+  authDomain: "solar-platform-4e199.firebaseapp.com",
+  projectId: "solar-platform-4e199",
+  storageBucket: "solar-platform-4e199.firebasestorage.app",
+  messagingSenderId: "1064154251819",
+  appId: "1:1064154251819:web:5825f9e77b361eca3b606e",
+  measurementId: "G-8GZK63QEDQ"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+async function loadOrders(){
+  try{
+    const q = query(collection(db, "orders"), orderBy("createdAt","desc"));
+    const snap = await getDocs(q);
+    let html="";
+    snap.forEach(d=>{
+      const o=d.data();
+      const date = o.createdAt?.toDate()?.toLocaleString() || 'just now';
+      html+=`<div class="order">
+        <b>${o.name}</b><br>
+        📞 ${o.phone}<br>
+        🕒 ${date}<br>
+        <button onclick="del('${d.id}')">Delete</button>
+      </div>`;
+    });
+    document.getElementById("orders").innerHTML = html || "No orders yet";
+  } catch(e){
+    document.getElementById("orders").innerHTML = "Error: " + e.message;
+  }
+}
+window.del=async(id)=>{
+  if(confirm("Delete this order?")){
+    await deleteDoc(doc(db,"orders",id));
+    loadOrders();
+  }
+}
+loadOrders();
+</script>
+</body>
+</html>
