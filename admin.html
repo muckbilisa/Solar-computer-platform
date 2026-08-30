@@ -1,32 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Solar Admin - Orders</title>
+<title>Solar Admin - Fast Approve</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{font-family:Arial;padding:20px;background:#f5f5f5}
+body{font-family:Arial;padding:15px;background:#0f0f0f;color:#fff}
 h1{color:#ff9800}
-.order{background:white;padding:15px;margin:10px 0;border-radius:10px;box-shadow:0 2px 5px #0002}
-button{background:red;color:white;border:0;padding:5px 10px;border-radius:5px;margin-top:8px}
-a{color:#ff9800;text-decoration:none;font-weight:bold}
+.card{background:#1e1e1e;padding:15px;margin:15px 0;border-radius:12px;border-left:4px solid #ff9800}
+button{padding:12px 18px;border:0;border-radius:8px;font-weight:bold;cursor:pointer;margin:5px}
+.approve{background:#00e676;color:#000}
+.reject{background:#ff1744;color:#fff}
+a{color:#ff9800;text-decoration:none}
+.badge{background:#ff9800;color:#000;padding:3px 8px;border-radius:20px;font-size:12px}
 </style>
 </head>
 <body>
-<h1>📦 Solar Orders - Admin</h1>
-<a href="/">← Back to Order Form</a>
-<div id="orders" style="margin-top:15px">Loading orders...</div>
+<h1>⚡ Solar Orders - Admin</h1>
+<a href="/">← Back to Site</a>
+<p><span class="badge" id="count">Loading...</span> Pending Payments</p>
+<div id="orders">Loading pending...</div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs, deleteDoc, doc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBPeaYd1u9Hm6PqU5HUKN4oT8FYpMejyx0",
+  apiKey: "AIzaSyBpeaYd1u9Hm6PqU5HUKN4oT8FYpMqU5HUKN4oT8FYpM",
   authDomain: "solar-platform-4e199.firebaseapp.com",
   projectId: "solar-platform-4e199",
   storageBucket: "solar-platform-4e199.firebasestorage.app",
   messagingSenderId: "1064154251819",
-  appId: "1:1064154251819:web:5825f9e77b361eca3b606e",
+  appId: "1:1064154251819:web:5825f9e77b361ec8a7e",
   measurementId: "G-8GZK63QEDQ"
 };
 
@@ -34,32 +38,58 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 async function loadOrders(){
-  try{
-    const q = query(collection(db, "orders"), orderBy("createdAt","desc"));
-    const snap = await getDocs(q);
-    let html="";
-    snap.forEach(d=>{
-      const o=d.data();
-      const date = o.createdAt?.toDate()?.toLocaleString() || 'just now';
-      html+=`<div class="order">
-        <b>${o.name}</b><br>
-        📞 ${o.phone}<br>
-        🕒 ${date}<br>
-        <button onclick="del('${d.id}')">Delete</button>
-      </div>`;
-    });
-    document.getElementById("orders").innerHTML = html || "No orders yet";
-  } catch(e){
-    document.getElementById("orders").innerHTML = "Error: " + e.message;
-  }
+  const querySnapshot = await getDocs(collection(db, "users"));
+  let html = "";
+  let count = 0;
+  querySnapshot.forEach((docSnap)=>{
+    const u = docSnap.data();
+    // Show only pending
+    if(u.paymentStatus === 'pending' && u.activated === false){
+      count++;
+      html += `
+        <div class="card">
+          <b>👤 ${u.email || 'No email'}</b><br>
+          Product: <b>${u.lastPurchase || 'Unknown'}</b><br>
+          Amount: <b style="color:#ff9800">${u.pendingAmount} FCFA</b><br>
+          MoMo ID: <b style="color:yellow;font-size:18px">${u.momoTransactionId || 'No ID'}</b><br>
+          MyID: ${u.myId || ''}<br>
+          Date: ${u.requestedAt ? new Date(u.requestedAt.seconds*1000).toLocaleString() : 'Now'}<br><br>
+          <button class="approve" onclick="approveUser('${docSnap.id}')">✅ APPROVE - I Received Money</button>
+          <button class="reject" onclick="rejectUser('${docSnap.id}')">❌ REJECT</button>
+        </div>
+      `;
+    }
+  });
+  if(count===0) html = "<p style='color:#00e676'>✅ No pending payments. All clear!</p>";
+  document.getElementById('orders').innerHTML = html;
+  document.getElementById('count').innerText = count + " pending";
 }
-window.del=async(id)=>{
-  if(confirm("Delete this order?")){
-    await deleteDoc(doc(db,"orders",id));
-    loadOrders();
-  }
+
+window.approveUser = async(id)=>{
+  if(!confirm('CONFIRM: Have you checked your MTN MoMo and seen the money? Approve this user?')) return;
+  await updateDoc(doc(db, "users", id), {
+    activated: true,
+    paymentStatus: 'approved',
+    balance: 1500,
+    totalEarned: 1500,
+    approvedAt: new Date(),
+    approvedBy: 'admin'
+  });
+  alert('✅ User APPROVED and activated! He can now earn.');
+  loadOrders();
 }
+
+window.rejectUser = async(id)=>{
+  if(!confirm('Reject this payment?')) return;
+  await updateDoc(doc(db, "users", id), {
+    paymentStatus: 'rejected',
+    activated: false
+  });
+  loadOrders();
+}
+
 loadOrders();
+setInterval(loadOrders, 10000); // Auto refresh every 10 sec
 </script>
 </body>
 </html>
