@@ -5,24 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body{font-family:Arial;padding:15px;background:#0f0f0f;color:#fff}
-h1{color:#ff9800}
+h1{color:#ff9800;font-size:22px}
 .card{background:#1e1e1e;padding:15px;margin:15px 0;border-radius:12px;border-left:4px solid #ff9800}
-button{padding:12px 18px;border:0;border-radius:8px;font-weight:bold;cursor:pointer;margin:5px}
+button{padding:14px 18px;border:0;border-radius:8px;font-weight:bold;cursor:pointer;margin:5px;width:100%}
 .approve{background:#00e676;color:#000}
-.reject{background:#ff1744;color:#fff}
-a{color:#ff9800;text-decoration:none}
-.badge{background:#ff9800;color:#000;padding:3px 8px;border-radius:20px;font-size:12px}
+.reject{background:#333;color:#ff4444;border:1px solid #ff4444}
+.badge{background:#ff9800;color:#000;padding:4px 10px;border-radius:20px;font-size:13px}
+#error{color:#ff4444;background:#2a0000;padding:10px;border-radius:8px;display:none}
 </style>
 </head>
 <body>
 <h1>⚡ Solar Orders - Admin</h1>
-<a href="/">← Back to Site</a>
+<a href="/" style="color:#ff9800">← Back to Site</a>
 <p><span class="badge" id="count">Loading...</span> Pending Payments</p>
+<div id="error"></div>
 <div id="orders">Loading pending...</div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBpeaYd1u9Hm6PqU5HUKN4oT8FYpMqU5HUKN4oT8FYpM",
@@ -38,58 +39,57 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 async function loadOrders(){
-  const querySnapshot = await getDocs(collection(db, "users"));
-  let html = "";
-  let count = 0;
-  querySnapshot.forEach((docSnap)=>{
-    const u = docSnap.data();
-    // Show only pending
-    if(u.paymentStatus === 'pending' && u.activated === false){
-      count++;
-      html += `
-        <div class="card">
-          <b>👤 ${u.email || 'No email'}</b><br>
-          Product: <b>${u.lastPurchase || 'Unknown'}</b><br>
-          Amount: <b style="color:#ff9800">${u.pendingAmount} FCFA</b><br>
-          MoMo ID: <b style="color:yellow;font-size:18px">${u.momoTransactionId || 'No ID'}</b><br>
-          MyID: ${u.myId || ''}<br>
-          Date: ${u.requestedAt ? new Date(u.requestedAt.seconds*1000).toLocaleString() : 'Now'}<br><br>
-          <button class="approve" onclick="approveUser('${docSnap.id}')">✅ APPROVE - I Received Money</button>
-          <button class="reject" onclick="rejectUser('${docSnap.id}')">❌ REJECT</button>
-        </div>
-      `;
-    }
-  });
-  if(count===0) html = "<p style='color:#00e676'>✅ No pending payments. All clear!</p>";
-  document.getElementById('orders').innerHTML = html;
-  document.getElementById('count').innerText = count + " pending";
+  try{
+    const querySnapshot = await getDocs(collection(db, "users"));
+    let html = "";
+    let count = 0;
+    querySnapshot.forEach((docSnap)=>{
+      const u = docSnap.data();
+      if(u.paymentStatus === 'pending' && u.activated === false){
+        count++;
+        html += `
+          <div class="card">
+            <b>👤 ${u.email || 'No email'}</b><br>
+            Product: <b>${u.lastPurchase || 'Unknown'}</b><br>
+            Amount: <b style="color:#ff9800">${u.pendingAmount || '0'} FCFA</b><br>
+            MoMo ID: <b style="color:yellow;font-size:20px">${u.momoTransactionId || 'No ID'}</b><br>
+            MyID: ${u.myId || ''}<br>
+            Date: ${u.requestedAt ? new Date(u.requestedAt.seconds*1000).toLocaleString() : 'Now'}<br><br>
+            <button class="approve" onclick="approveUser('${docSnap.id}')">✅ APPROVE - I Received Money</button>
+            <button class="reject" onclick="rejectUser('${docSnap.id}')">❌ REJECT</button>
+          </div>
+        `;
+      }
+    });
+    if(count===0) html = "<p style='color:#00e676'>✅ No pending payments. All clear!</p>";
+    document.getElementById('orders').innerHTML = html;
+    document.getElementById('count').innerText = count + " pending";
+  }catch(e){
+    document.getElementById('error').style.display='block';
+    document.getElementById('error').innerText = 'Error: ' + e.message;
+    document.getElementById('orders').innerHTML = 'Failed to load. Check Firebase rules.';
+  }
 }
 
 window.approveUser = async(id)=>{
-  if(!confirm('CONFIRM: Have you checked your MTN MoMo and seen the money? Approve this user?')) return;
+  if(!confirm('CONFIRM: Did you see money in MoMo? Approve?')) return;
   await updateDoc(doc(db, "users", id), {
     activated: true,
     paymentStatus: 'approved',
     balance: 1500,
     totalEarned: 1500,
-    approvedAt: new Date(),
-    approvedBy: 'admin'
+    approvedAt: new Date()
   });
-  alert('✅ User APPROVED and activated! He can now earn.');
+  alert('✅ APPROVED!');
   loadOrders();
 }
-
 window.rejectUser = async(id)=>{
-  if(!confirm('Reject this payment?')) return;
-  await updateDoc(doc(db, "users", id), {
-    paymentStatus: 'rejected',
-    activated: false
-  });
+  await updateDoc(doc(db, "users", id), {paymentStatus:'rejected', activated:false});
   loadOrders();
 }
 
 loadOrders();
-setInterval(loadOrders, 10000); // Auto refresh every 10 sec
+setInterval(loadOrders, 8000);
 </script>
 </body>
 </html>
