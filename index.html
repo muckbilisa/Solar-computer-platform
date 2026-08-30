@@ -254,19 +254,43 @@ setInterval(()=>{
 
 window.payProduct = async (name,price,bonus) => {
   if(!currentUser){ alert('Please login first'); return; }
-  if(confirm('SOLARIS LUX PRO\nProduct: '+name+'\nPrice: '+price+'F\nBonus: +'+bonus+'F + 1,500F welcome\nPay MoMo OWNER: 680100992?')){
-    let activated = localStorage.getItem('activated')==='true';
-    if(!activated){
-      balance = 1500 + parseInt(bonus);
-      totalEarned = 1500 + parseInt(bonus);
+  
+  // STOP FREE ACTIVATION - REQUIRE REAL PAYMENT
+  let activated = localStorage.getItem('activated');
+  
+  if(!activated){
+    // Don't activate! Send to pending
+    if(confirm('SOLARIS LUX PRO\nProduct: '+name+'\nPrice: '+price+' FCFA\n\nYou must pay via MTN MoMo to:\nConstance Nange\n+237680100992\n\nAfter paying, click OK and enter your MoMo transaction ID. Our admin will verify and activate you within 10 minutes.')){
+      
+      let transId = prompt('Enter your MoMo Transaction ID after payment:');
+      if(!transId || transId.length < 5){ alert('Payment cancelled - no Transaction ID'); return; }
+      
+      // Save as PENDING, NOT activated
       myId = myId || generateId();
-      localStorage.setItem('activated','true');
-    } else {
-      balance += parseInt(bonus);
-      totalEarned += parseInt(bonus);
+      localStorage.setItem('myId', myId);
+      localStorage.setItem('paymentStatus', 'pending');
+      
+      // SAVE PENDING REQUEST TO FIREBASE
+      await updateDoc(doc(db, "users", currentUser.uid), {
+        myId: myId,
+        paymentStatus: 'pending',
+        lastPurchase: name,
+        pendingAmount: price,
+        momoTransactionId: transId,
+        requestedAt: new Date(),
+        activated: false
+      });
+      
+      navigator.clipboard.writeText('680100992');
+      alert('⏳ PAYMENT REQUEST SENT!\nID: '+myId+'\nWe will verify your MoMo ID: '+transId+'\nYour account will be activated after verification. Please wait or contact admin on WhatsApp.');
+      updateUI();
+      switchTab('wallet');
     }
+  } else {
+    // Already activated users can buy again
+    balance += parseInt(bonus);
+    totalEarned += parseInt(bonus);
     localStorage.setItem('myId', myId);
-    // SAVE TO FIREBASE CLOUD
     await updateDoc(doc(db, "users", currentUser.uid), {
       balance: balance,
       totalEarned: totalEarned,
@@ -274,10 +298,8 @@ window.payProduct = async (name,price,bonus) => {
       myId: myId,
       lastPurchase: name
     });
-    navigator.clipboard.writeText('680100992');
-    alert('✅ ACTIVATED!\nID: '+myId+'\nBalance: '+balance+'F saved to cloud!\nYou can login on any phone now.\nPay MoMo 680100992');
+    alert('✅ BONUS ADDED! Balance: '+balance);
     updateUI();
-    switchTab('wallet');
   }
 };
 
