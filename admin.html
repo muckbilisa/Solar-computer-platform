@@ -1,29 +1,33 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Solar Admin - Fast Approve</title>
+<title>Solar Admin - Notifications</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body{font-family:Arial;padding:15px;background:#0f0f0f;color:#fff}
-h1{color:#ff9800;font-size:22px}
-.card{background:#1e1e1e;padding:15px;margin:15px 0;border-radius:12px;border-left:4px solid #ff9800}
-button{padding:14px 18px;border:0;border-radius:8px;font-weight:bold;cursor:pointer;margin:5px;width:100%}
-.approve{background:#00e676;color:#000}
+h1{color:#00e676}
+.card{background:#1e1e1e;padding:15px;margin:15px 0;border-radius:12px;border-left:4px solid #00e676;animation:pop .3s}
+@keyframes pop{0%{transform:scale(.9)}100%{transform:scale(1)}}
+button{padding:14px;border:0;border-radius:8px;font-weight:bold;cursor:pointer;margin:5px;width:100%}
+.approve{background:#00e676;color:#000;font-size:18px}
 .reject{background:#333;color:#ff4444;border:1px solid #ff4444}
-.badge{background:#ff9800;color:#000;padding:4px 10px;border-radius:20px;font-size:13px}
-#error{color:#ff4444;background:#2a0000;padding:10px;border-radius:8px;display:none}
+.badge{background:#00e676;color:#000;padding:6px 12px;border-radius:20px;font-weight:bold}
+.top{position:sticky;top:0;background:#0f0f0f;padding:10px 0;z-index:9}
 </style>
 </head>
 <body>
-<h1>⚡ Solar Orders - Admin</h1>
-<a href="/" style="color:#ff9800">← Back to Site</a>
-<p><span class="badge" id="count">Loading...</span> Pending Payments</p>
-<div id="error"></div>
-<div id="orders">Loading pending...</div>
+<div class="top">
+<h1>⚡ Solar Admin LIVE</h1>
+<a href="/" style="color:#00e676">← Site</a><br><br>
+<span class="badge" id="count">0 pending</span> - <span id="status">🔊 Sound ON - Keep this page open</span><br>
+<button onclick="enableSound()" style="background:#fff;color:#000;width:auto;padding:8px 15px;margin-top:10px">🔔 Enable Notifications & Sound</button>
+</div>
+<div id="orders">Waiting for payments...</div>
+<audio id="beep" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBpeaYd1u9Hm6PqU5HUKN4oT8FYpMqU5HUKN4oT8FYpM",
@@ -31,65 +35,61 @@ const firebaseConfig = {
   projectId: "solar-platform-4e199",
   storageBucket: "solar-platform-4e199.firebasestorage.app",
   messagingSenderId: "1064154251819",
-  appId: "1:1064154251819:web:5825f9e77b361ec8a7e",
-  measurementId: "G-8GZK63QEDQ"
+  appId: "1:1064154251819:web:5825f9e77b361ec8a7e"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+let lastCount = 0;
+let soundEnabled = false;
 
-async function loadOrders(){
-  try{
-    const querySnapshot = await getDocs(collection(db, "users"));
-    let html = "";
-    let count = 0;
-    querySnapshot.forEach((docSnap)=>{
-      const u = docSnap.data();
-      if(u.paymentStatus === 'pending' && u.activated === false){
-        count++;
-        html += `
-          <div class="card">
-            <b>👤 ${u.email || 'No email'}</b><br>
-            Product: <b>${u.lastPurchase || 'Unknown'}</b><br>
-            Amount: <b style="color:#ff9800">${u.pendingAmount || '0'} FCFA</b><br>
-            MoMo ID: <b style="color:yellow;font-size:20px">${u.momoTransactionId || 'No ID'}</b><br>
-            MyID: ${u.myId || ''}<br>
-            Date: ${u.requestedAt ? new Date(u.requestedAt.seconds*1000).toLocaleString() : 'Now'}<br><br>
-            <button class="approve" onclick="approveUser('${docSnap.id}')">✅ APPROVE - I Received Money</button>
-            <button class="reject" onclick="rejectUser('${docSnap.id}')">❌ REJECT</button>
-          </div>
-        `;
-      }
-    });
-    if(count===0) html = "<p style='color:#00e676'>✅ No pending payments. All clear!</p>";
-    document.getElementById('orders').innerHTML = html;
-    document.getElementById('count').innerText = count + " pending";
-  }catch(e){
-    document.getElementById('error').style.display='block';
-    document.getElementById('error').innerText = 'Error: ' + e.message;
-    document.getElementById('orders').innerHTML = 'Failed to load. Check Firebase rules.';
+window.enableSound = async()=>{
+  soundEnabled = true;
+  document.getElementById('beep').play().catch(()=>{});
+  if(Notification && Notification.permission !== "granted"){
+    await Notification.requestPermission();
   }
+  document.getElementById('status').innerText = "✅ LIVE - Will beep when payment comes";
+  alert("✅ Notifications enabled! Keep this tab open. It will beep.");
 }
 
-window.approveUser = async(id)=>{
-  if(!confirm('CONFIRM: Did you see money in MoMo? Approve?')) return;
-  await updateDoc(doc(db, "users", id), {
-    activated: true,
-    paymentStatus: 'approved',
-    balance: 1500,
-    totalEarned: 1500,
-    approvedAt: new Date()
+async function loadOrders(){
+  const snap = await getDocs(collection(db, "users"));
+  let html = ""; let count = 0;
+  snap.forEach(d=>{
+    const u = d.data();
+    if(u.paymentStatus === 'pending' && u.activated === false){
+      count++;
+      html += `<div class="card"><b>👤 ${u.email||''}</b><br>Product: <b>${u.lastPurchase||''}</b><br>Amount: <b style="color:#00e676;font-size:20px">${u.pendingAmount||0} FCFA</b><br>MoMo ID: <b style="color:yellow;font-size:22px">${u.momoTransactionId||''}</b><br>MyID: ${u.myId||''}<br><br><button class="approve" onclick="approveUser('${d.id}')">✅ APPROVE - Received ${u.pendingAmount||''} FCFA</button><button class="reject" onclick="rejectUser('${d.id}')">❌ REJECT</button></div>`;
+    }
   });
-  alert('✅ APPROVED!');
+  if(count===0) html = "<p style='color:#777;margin-top:30px;text-align:center'>😴 No pending. Waiting for new payment...</p>";
+  document.getElementById('orders').innerHTML = html;
+  document.getElementById('count').innerText = count + " pending";
+  
+  if(count > lastCount && lastCount !== 0 && soundEnabled){
+    document.getElementById('beep').play();
+    if(navigator.vibrate) navigator.vibrate([500,200,500]);
+    if(Notification && Notification.permission === "granted"){
+      new Notification("💰 New Payment! " + count + " pending", {body: "Check Solar Admin now - Money arrived!"});
+    }
+  }
+  if(count>0 && lastCount===0 && soundEnabled && count===1){
+     document.getElementById('beep').play();
+     if(navigator.vibrate) navigator.vibrate([500,200,500]);
+  }
+  lastCount = count;
+}
+window.approveUser = async(id)=>{
+  if(!confirm('Confirm you received MoMo money?')) return;
+  await updateDoc(doc(db, "users", id), {activated:true,paymentStatus:'approved',balance:1500,totalEarned:1500,approvedAt:new Date()});
   loadOrders();
 }
 window.rejectUser = async(id)=>{
-  await updateDoc(doc(db, "users", id), {paymentStatus:'rejected', activated:false});
+  await updateDoc(doc(db, "users", id), {paymentStatus:'rejected',activated:false});
   loadOrders();
 }
-
 loadOrders();
-setInterval(loadOrders, 8000);
+setInterval(loadOrders, 4000);
 </script>
 </body>
 </html>
