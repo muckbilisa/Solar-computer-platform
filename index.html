@@ -271,22 +271,12 @@ window.payProduct = async (name, price, bonus) => {
     const isActivated = userData.activated === true;
     const paymentStatus = userData.paymentStatus || '';
 
-    // PREVENT BONUS FARMING AFTER ACTIVATION
-    if (isActivated) {
-      alert(
-        'ACCOUNT ALREADY ACTIVATED\n\n' +
-        'Your account is already active.\n\n' +
-        'You cannot receive another activation bonus by tapping another product.'
-      );
-      return;
-    }
-
-    // PREVENT MULTIPLE PAYMENT REQUESTS
+    // PREVENT MULTIPLE PENDING PURCHASES
     if (paymentStatus === 'pending') {
       alert(
         'PAYMENT ALREADY PENDING\n\n' +
-        'Your payment request is waiting for admin verification.\n\n' +
-        'You cannot submit another activation request until the owner confirms your payment.'
+        'Your previous payment request is waiting for admin verification.\n\n' +
+        'Please wait until the owner confirms it before making another purchase.'
       );
       return;
     }
@@ -299,7 +289,7 @@ window.payProduct = async (name, price, bonus) => {
       'Constance Nange\n' +
       '+237680100992\n\n' +
       'After paying, click OK and enter your MoMo transaction ID.\n\n' +
-      'Your account will remain LOCKED until admin verifies the payment.'
+      'Your purchase will remain PENDING until admin verifies the payment.'
     );
 
     if (!confirmed) return;
@@ -317,18 +307,33 @@ window.payProduct = async (name, price, bonus) => {
 
     localStorage.setItem('myId', myId);
     localStorage.setItem('paymentStatus', 'pending');
-    localStorage.setItem('activated', 'false');
 
-    await updateDoc(userRef, {
+    /*
+      IMPORTANT:
+      If the user is already activated, KEEP activated = true.
+      If this is their first purchase, keep them locked until admin approval.
+    */
+
+    const updateData = {
       myId: myId,
       paymentStatus: 'pending',
+
+      // Product being purchased
       lastPurchase: name,
       pendingAmount: Number(price),
-      pendingBonus: Number(bonus),
+
+      // Only give the activation bonus on the FIRST activation purchase.
+      pendingBonus: isActivated ? 0 : Number(bonus),
+
       momoTransactionId: transId.trim(),
       requestedAt: new Date(),
-      activated: false
-    });
+
+      // IMPORTANT:
+      // Already activated users remain activated.
+      activated: isActivated
+    };
+
+    await updateDoc(userRef, updateData);
 
     try {
       await navigator.clipboard.writeText('680100992');
@@ -336,13 +341,25 @@ window.payProduct = async (name, price, bonus) => {
       console.log('Clipboard unavailable');
     }
 
-    alert(
-      'PAYMENT REQUEST SENT!\n\n' +
-      'ID: ' + myId + '\n' +
-      'Transaction ID: ' + transId.trim() + '\n\n' +
-      'Your account is still LOCKED.\n' +
-      'Admin must verify your payment before activation.'
-    );
+    if (isActivated) {
+      alert(
+        'PURCHASE REQUEST SENT!\n\n' +
+        'Product: ' + name + '\n' +
+        'Price: ' + price + ' FCFA\n' +
+        'Transaction ID: ' + transId.trim() + '\n\n' +
+        'Your account remains ACTIVE.\n' +
+        'Admin must verify your payment before this purchase is confirmed.'
+      );
+    } else {
+      alert(
+        'PAYMENT REQUEST SENT!\n\n' +
+        'ID: ' + myId + '\n' +
+        'Product: ' + name + '\n' +
+        'Transaction ID: ' + transId.trim() + '\n\n' +
+        'Your account is still LOCKED.\n' +
+        'Admin must verify your payment before activation.'
+      );
+    }
 
     updateUI();
     switchTab('wallet');
