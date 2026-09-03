@@ -253,111 +253,120 @@ setInterval(()=>{
 },1000);
 
 window.payProduct = async (name, price, bonus) => {
-if (!currentUser) {
-alert(‘Please login first’);
-return;
-}
-
-try {
-// Always get the real activation status from Firebase
-const userRef = doc(db, “users”, currentUser.uid);
-const userSnap = await getDoc(userRef);
-
-if (!userSnap.exists()) {
-  alert('User account not found');
-  return;
-}
-const userData = userSnap.data();
-const isActivated = userData.activated === true;
-const paymentStatus = userData.paymentStatus || '';
-// If payment is already waiting for admin verification
-if (!isActivated && paymentStatus === 'pending') {
-  alert(
-    '⏳ PAYMENT ALREADY PENDING\n\n' +
-    'Your payment request is waiting for admin verification.\n\n' +
-    'You cannot activate the account until the owner confirms your payment.'
-  );
-  return;
-}
-// NOT ACTIVATED — require payment and admin verification
-if (!isActivated) {
-  const confirmed = confirm(
-    'SOLARIS LUX PRO\n\n' +
-    'Product: ' + name + '\n' +
-    'Price: ' + price + ' FCFA\n\n' +
-    'You must first pay via MTN MoMo to:\n' +
-    'Constance Nange\n' +
-    '+237680100992\n\n' +
-    'After paying, click OK and enter your MoMo transaction ID.\n\n' +
-    'Your account will remain LOCKED until admin verifies the payment.'
-  );
-  if (!confirmed) {
+  if (!currentUser) {
+    alert('Please login first');
     return;
   }
-  const transId = prompt(
-    'Enter your MoMo Transaction ID after payment:'
-  );
-  if (!transId || transId.trim().length < 5) {
-    alert('Payment cancelled - no valid Transaction ID');
-    return;
-  }
-  // Generate Solar ID if needed
-  myId = myId || generateId();
-  localStorage.setItem('myId', myId);
-  // IMPORTANT: keep account locked
-  localStorage.setItem('paymentStatus', 'pending');
-  localStorage.setItem('activated', 'false');
-  // Save payment request as PENDING
-  await updateDoc(userRef, {
-    myId: myId,
-    paymentStatus: 'pending',
-    lastPurchase: name,
-    pendingAmount: price,
-    momoTransactionId: transId.trim(),
-    requestedAt: new Date(),
-    activated: false
-  });
-  navigator.clipboard.writeText('680100992');
-  alert(
-    '⏳ PAYMENT REQUEST SENT!\n\n' +
-    'ID: ' + myId + '\n' +
-    'Transaction ID: ' + transId.trim() + '\n\n' +
-    'Your account is still LOCKED.\n' +
-    'Admin must verify your payment before activation.'
-  );
-  updateUI();
-  switchTab('wallet');
-  return;
-}
-// ALREADY ACTIVATED — allow another product purchase/bonus
-const currentBalance = Number(userData.balance || 0);
-const currentTotalEarned = Number(userData.totalEarned || 0);
-const bonusAmount = parseInt(bonus) || 0;
-const newBalance = currentBalance + bonusAmount;
-const newTotalEarned = currentTotalEarned + bonusAmount;
-await updateDoc(userRef, {
-  balance: newBalance,
-  totalEarned: newTotalEarned,
-  activated: true,
-  myId: userData.myId || myId,
-  lastPurchase: name
-});
-balance = newBalance;
-totalEarned = newTotalEarned;
-localStorage.setItem('activated', 'true');
-alert(
-  '✅ BONUS ADDED!\n\n' +
-  'Bonus: ' + bonusAmount + 'F\n' +
-  'Balance: ' + balance + 'F'
-);
-updateUI();
 
-} catch (error) {
-console.error(‘Product payment error:’, error);
-alert(‘❌ Something went wrong. Please try again.’);
-}
+  try {
+    const userRef = doc(db, "users", currentUser.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      alert('User account not found');
+      return;
+    }
+
+    const userData = userSnap.data();
+    const isActivated = userData.activated === true;
+    const paymentStatus = userData.paymentStatus || '';
+
+    if (!isActivated && paymentStatus === 'pending') {
+      alert(
+        'PAYMENT ALREADY PENDING\n\n' +
+        'Your payment request is waiting for admin verification.\n\n' +
+        'You cannot activate the account until the owner confirms your payment.'
+      );
+      return;
+    }
+
+    if (!isActivated) {
+      const confirmed = confirm(
+        'SOLARIS LUX PRO\n\n' +
+        'Product: ' + name + '\n' +
+        'Price: ' + price + ' FCFA\n\n' +
+        'You must first pay via MTN MoMo to:\n' +
+        'Constance Nange\n' +
+        '+237680100992\n\n' +
+        'After paying, click OK and enter your MoMo transaction ID.\n\n' +
+        'Your account will remain LOCKED until admin verifies the payment.'
+      );
+
+      if (!confirmed) return;
+
+      const transId = prompt(
+        'Enter your MoMo Transaction ID after payment:'
+      );
+
+      if (!transId || transId.trim().length < 5) {
+        alert('Payment cancelled - no valid Transaction ID');
+        return;
+      }
+
+      myId = myId || generateId();
+
+      localStorage.setItem('myId', myId);
+      localStorage.setItem('paymentStatus', 'pending');
+      localStorage.setItem('activated', 'false');
+
+      await updateDoc(userRef, {
+        myId: myId,
+        paymentStatus: 'pending',
+        lastPurchase: name,
+        pendingAmount: price,
+        momoTransactionId: transId.trim(),
+        requestedAt: new Date(),
+        activated: false
+      });
+
+      navigator.clipboard.writeText('680100992');
+
+      alert(
+        'PAYMENT REQUEST SENT!\n\n' +
+        'ID: ' + myId + '\n' +
+        'Transaction ID: ' + transId.trim() + '\n\n' +
+        'Your account is still LOCKED.\n' +
+        'Admin must verify your payment before activation.'
+      );
+
+      updateUI();
+      switchTab('wallet');
+      return;
+    }
+
+    const currentBalance = Number(userData.balance || 0);
+    const currentTotalEarned = Number(userData.totalEarned || 0);
+    const bonusAmount = parseInt(bonus) || 0;
+
+    const newBalance = currentBalance + bonusAmount;
+    const newTotalEarned = currentTotalEarned + bonusAmount;
+
+    await updateDoc(userRef, {
+      balance: newBalance,
+      totalEarned: newTotalEarned,
+      activated: true,
+      myId: userData.myId || myId,
+      lastPurchase: name
+    });
+
+    balance = newBalance;
+    totalEarned = newTotalEarned;
+
+    localStorage.setItem('activated', 'true');
+
+    alert(
+      'BONUS ADDED!\n\n' +
+      'Bonus: ' + bonusAmount + 'F\n' +
+      'Balance: ' + balance + 'F'
+    );
+
+    updateUI();
+
+  } catch (error) {
+    console.error('Product payment error:', error);
+    alert('Something went wrong. Please try again.');
+  }
 };
-
 window.copyLink = () => { let link='https://solar-computer-platform.vercel.app/?invite='+myId; navigator.clipboard.writeText(link); alert('✅ LINK COPIED!\n'+link); };
 window.copyOwnerMoMo = () => { navigator.clipboard.writeText('680100992'); alert('✅ OWNER MoMo COPIED: 680100992'); };
 window.shareWA = () => { let link='https://solar-computer-platform.vercel.app/?invite='+myId; let txt=encodeURIComponent('☀️ Join SOLARIS LUX PRO! My link: '+link); window.open('https://wa.me/?text='+txt,'_blank'); };
