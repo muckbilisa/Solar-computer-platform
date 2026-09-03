@@ -201,9 +201,45 @@ onAuthStateChanged(auth, async (user)=>{
 window.register = async () => {
   const email = document.getElementById('email').value.trim();
   const pass = document.getElementById('password').value;
-  if(!email || pass.length<6){ document.getElementById('authMsg').innerText='Enter valid email & 6 char password'; return; }
-  try{ await createUserWithEmailAndPassword(auth, email, pass); }
-  catch(e){ document.getElementById('authMsg').innerText = e.message; }
+
+  if (!email || pass.length < 6) {
+    document.getElementById('authMsg').innerText =
+      'Enter valid email & 6 char password';
+    return;
+  }
+
+  try {
+    const inviteId = new URLSearchParams(window.location.search).get('invite');
+
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      pass
+    );
+
+    const newUser = userCredential.user;
+    const userRef = doc(db, "users", newUser.uid);
+
+    await setDoc(userRef, {
+      email: email,
+      activated: false,
+      paymentStatus: '',
+      balance: 0,
+      totalEarned: 0,
+      referredBy: inviteId ? inviteId.trim() : '',
+      createdAt: new Date()
+    });
+
+    alert(
+      'ACCOUNT CREATED SUCCESSFULLY!\n\n' +
+      'Your account is currently LOCKED.\n' +
+      'Buy a product and wait for admin payment confirmation to activate it.'
+    );
+
+  } catch (e) {
+    console.error('Registration error:', e);
+    document.getElementById('authMsg').innerText = e.message;
+  }
 };
 window.login = async () => {
   const email = document.getElementById('email').value.trim();
