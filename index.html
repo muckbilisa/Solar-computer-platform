@@ -141,7 +141,7 @@ body{font-family:Inter;background:#000;color:#fff}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBPeaYd1u9Hm6PqU5HUKN4oT8FYpMejyx0",
@@ -373,69 +373,106 @@ window.spinWheel = async () => {
     return;
   }
 
+  const spinButton = document.querySelector('button[onclick="spinWheel()"]');
+
+  if (spinButton) {
+    spinButton.disabled = true;
+    spinButton.innerText = '🎡 SPINNING...';
+  }
+
   try {
     const userRef = doc(db, "users", currentUser.uid);
-    const userSnap = await getDoc(userRef);
 
-    if (!userSnap.exists()) {
-      alert('User account not found');
-      return;
-    }
+    const result = await runTransaction(db, async (transaction) => {
+      const userSnap = await transaction.get(userRef);
 
-    const userData = userSnap.data();
+      if (!userSnap.exists()) {
+        throw new Error('User account not found');
+      }
 
-    // Account must be activated first
-    if (userData.activated !== true) {
-      alert(
-        '🔒 ACCOUNT LOCKED\n\n' +
-        'Your account must be activated before you can use the spin wheel.'
-      );
-      switchTab('home');
-      return;
-    }
+      const userData = userSnap.data();
 
-    // ONE SPIN ONLY EVER
-    if (userData.spinUsed === true) {
-      alert(
-        '🎡 SPIN ALREADY USED\n\n' +
-        'You have already used your one spin.'
-      );
-      return;
-    }
+      // Account must be activated
+      if (userData.activated !== true) {
+        throw new Error('ACCOUNT_LOCKED');
+      }
 
-    const prizes = [50, 100, 150, 200, 300, 500];
-    const win = prizes[Math.floor(Math.random() * prizes.length)];
+      // ONE SPIN ONLY EVER
+      if (userData.spinUsed === true) {
+        throw new Error('SPIN_ALREADY_USED');
+      }
 
-    const currentBalance = Number(userData.balance || 0);
-    const currentTotalEarned = Number(userData.totalEarned || 0);
+      const prizes = [50, 100, 150, 200, 300, 500];
+      const win = prizes[Math.floor(Math.random() * prizes.length)];
 
-    const newBalance = currentBalance + win;
-    const newTotalEarned = currentTotalEarned + win;
+      const currentBalance = Number(userData.balance || 0);
+      const currentTotalEarned = Number(userData.totalEarned || 0);
 
-    // Save the reward and permanently mark the spin as used
-    await updateDoc(userRef, {
-      balance: newBalance,
-      totalEarned: newTotalEarned,
-      spinUsed: true
+      const newBalance = currentBalance + win;
+      const newTotalEarned = currentTotalEarned + win;
+
+      // Atomically mark spin as used AND add reward
+      transaction.update(userRef, {
+        balance: newBalance,
+        totalEarned: newTotalEarned,
+        spinUsed: true
+      });
+
+      return {
+        win: win,
+        balance: newBalance,
+        totalEarned: newTotalEarned
+      };
     });
 
-    balance = newBalance;
-    totalEarned = newTotalEarned;
+    balance = result.balance;
+    totalEarned = result.totalEarned;
 
     updateUI();
 
+    if (spinButton) {
+      spinButton.innerText = '🔒 SPIN ALREADY USED';
+      spinButton.className =
+        'w-full mt-3 bg-zinc-700 text-zinc-400 font-black py-3 rounded-xl';
+    }
+
     alert(
-      '🎉 YOU WON ' + win + 'F!\n\n' +
+      '🎉 YOU WON ' + result.win + 'F!\n\n' +
       'This was your one and only spin.\n' +
       'Balance: ' + balance + 'F'
     );
 
   } catch (error) {
-    console.error('Spin wheel error:', error);
-    alert('❌ Spin failed. Please try again.');
+
+    if (error.message === 'ACCOUNT_LOCKED') {
+      alert(
+        '🔒 ACCOUNT LOCKED\n\n' +
+        'Your account must be activated before you can use the spin wheel.'
+      );
+      switchTab('home');
+
+    } else if (error.message === 'SPIN_ALREADY_USED') {
+      alert(
+        '🎡 SPIN ALREADY USED\n\n' +
+        'You have already used your one and only spin.'
+      );
+
+      if (spinButton) {
+        spinButton.disabled = true;
+        spinButton.innerText = '🔒 SPIN ALREADY USED';
+      }
+
+    } else {
+      console.error('Spin wheel error:', error);
+      alert('❌ Spin failed. Please try again.');
+
+      if (spinButton) {
+        spinButton.disabled = false;
+        spinButton.innerText = 'SPIN NOW - WIN UP TO 500F';
+      }
+    }
   }
 };
-
 window.withdraw = async () => {
 try {
 const userMoMo = document.getElementById('userMoMoInput').value.trim();
