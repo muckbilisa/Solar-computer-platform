@@ -271,96 +271,81 @@ window.payProduct = async (name, price, bonus) => {
     const isActivated = userData.activated === true;
     const paymentStatus = userData.paymentStatus || '';
 
-    if (!isActivated && paymentStatus === 'pending') {
+    // PREVENT BONUS FARMING AFTER ACTIVATION
+    if (isActivated) {
+      alert(
+        'ACCOUNT ALREADY ACTIVATED\n\n' +
+        'Your account is already active.\n\n' +
+        'You cannot receive another activation bonus by tapping another product.'
+      );
+      return;
+    }
+
+    // PREVENT MULTIPLE PAYMENT REQUESTS
+    if (paymentStatus === 'pending') {
       alert(
         'PAYMENT ALREADY PENDING\n\n' +
         'Your payment request is waiting for admin verification.\n\n' +
-        'You cannot activate the account until the owner confirms your payment.'
+        'You cannot submit another activation request until the owner confirms your payment.'
       );
       return;
     }
 
-    if (!isActivated) {
-      const confirmed = confirm(
-        'SOLARIS LUX PRO\n\n' +
-        'Product: ' + name + '\n' +
-        'Price: ' + price + ' FCFA\n\n' +
-        'You must first pay via MTN MoMo to:\n' +
-        'Constance Nange\n' +
-        '+237680100992\n\n' +
-        'After paying, click OK and enter your MoMo transaction ID.\n\n' +
-        'Your account will remain LOCKED until admin verifies the payment.'
-      );
+    const confirmed = confirm(
+      'SOLARIS LUX PRO\n\n' +
+      'Product: ' + name + '\n' +
+      'Price: ' + price + ' FCFA\n\n' +
+      'You must first pay via MTN MoMo to:\n' +
+      'Constance Nange\n' +
+      '+237680100992\n\n' +
+      'After paying, click OK and enter your MoMo transaction ID.\n\n' +
+      'Your account will remain LOCKED until admin verifies the payment.'
+    );
 
-      if (!confirmed) return;
+    if (!confirmed) return;
 
-      const transId = prompt(
-        'Enter your MoMo Transaction ID after payment:'
-      );
+    const transId = prompt(
+      'Enter your MoMo Transaction ID after payment:'
+    );
 
-      if (!transId || transId.trim().length < 5) {
-        alert('Payment cancelled - no valid Transaction ID');
-        return;
-      }
-
-      myId = myId || generateId();
-
-      localStorage.setItem('myId', myId);
-      localStorage.setItem('paymentStatus', 'pending');
-      localStorage.setItem('activated', 'false');
-
-      await updateDoc(userRef, {
-        myId: myId,
-        paymentStatus: 'pending',
-        lastPurchase: name,
-        pendingAmount: price,
-        momoTransactionId: transId.trim(),
-        requestedAt: new Date(),
-        activated: false
-      });
-
-      navigator.clipboard.writeText('680100992');
-
-      alert(
-        'PAYMENT REQUEST SENT!\n\n' +
-        'ID: ' + myId + '\n' +
-        'Transaction ID: ' + transId.trim() + '\n\n' +
-        'Your account is still LOCKED.\n' +
-        'Admin must verify your payment before activation.'
-      );
-
-      updateUI();
-      switchTab('wallet');
+    if (!transId || transId.trim().length < 5) {
+      alert('Payment cancelled - no valid Transaction ID');
       return;
     }
 
-    const currentBalance = Number(userData.balance || 0);
-    const currentTotalEarned = Number(userData.totalEarned || 0);
-    const bonusAmount = parseInt(bonus) || 0;
+    myId = myId || generateId();
 
-    const newBalance = currentBalance + bonusAmount;
-    const newTotalEarned = currentTotalEarned + bonusAmount;
+    localStorage.setItem('myId', myId);
+    localStorage.setItem('paymentStatus', 'pending');
+    localStorage.setItem('activated', 'false');
 
     await updateDoc(userRef, {
-      balance: newBalance,
-      totalEarned: newTotalEarned,
-      activated: true,
-      myId: userData.myId || myId,
-      lastPurchase: name
+      myId: myId,
+      paymentStatus: 'pending',
+      lastPurchase: name,
+      pendingAmount: Number(price),
+      pendingBonus: Number(bonus),
+      momoTransactionId: transId.trim(),
+      requestedAt: new Date(),
+      activated: false
     });
 
-    balance = newBalance;
-    totalEarned = newTotalEarned;
-
-    localStorage.setItem('activated', 'true');
+    try {
+      await navigator.clipboard.writeText('680100992');
+    } catch (e) {
+      console.log('Clipboard unavailable');
+    }
 
     alert(
-      'BONUS ADDED!\n\n' +
-      'Bonus: ' + bonusAmount + 'F\n' +
-      'Balance: ' + balance + 'F'
+      'PAYMENT REQUEST SENT!\n\n' +
+      'ID: ' + myId + '\n' +
+      'Transaction ID: ' + transId.trim() + '\n\n' +
+      'Your account is still LOCKED.\n' +
+      'Admin must verify your payment before activation.'
     );
 
     updateUI();
+    switchTab('wallet');
 
   } catch (error) {
     console.error('Product payment error:', error);
