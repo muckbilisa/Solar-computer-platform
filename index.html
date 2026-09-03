@@ -141,7 +141,7 @@ body{font-family:Inter;background:#000;color:#fff}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBPeaYd1u9Hm6PqU5HUKN4oT8FYpMejyx0",
@@ -329,71 +329,89 @@ window.spinWheel = async () => {
 };
 
 window.withdraw = async () => {
-  try {
-    const userMoMo = document.getElementById('userMoMoInput').value.trim();
-    if (!userMoMo) {
-      alert('Enter your MoMo number');
-      return;
-    }
-    let a = prompt(
-      'Balance: ' + balance + 'F\nMin 1,000F Max 100,000F\nEnter amount:',
-      '1000'
-    );
-    if (!a) return;
-    a = parseInt(a);
-    if (isNaN(a) || a < 1000 || a > 100000 || a > balance) {
-      alert('Invalid amount');
-      return;
-    }
-    if (!currentUser) {
-      alert('Please log in again');
-      return;
-    }
-    // Get the latest user data from Firebase
-    const userRef = doc(db, "users", currentUser.uid);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) {
-      alert('User account not found');
-      return;
-    }
-    const userData = userSnap.data();
-    const currentBalance = Number(userData.balance || 0);
-    // Prevent withdrawing more than the real Firebase balance
-    if (a > currentBalance) {
-      alert('Insufficient balance');
-      return;
-    }
-    // Prevent another withdrawal while one is already pending
-    if (userData.withdrawalStatus === 'pending') {
-      alert('You already have a pending withdrawal. Please wait for it to be processed.');
-      return;
-    }
-    // Reserve/deduct the amount and create the withdrawal request
-    await updateDoc(userRef, {
-      balance: currentBalance - a,
-      withdrawalStatus: 'pending',
-      withdrawalAmount: a,
-      withdrawalMoMo: userMoMo,
-      withdrawalRequestedAt: new Date(),
-      // Useful information for the admin
-      withdrawalUserEmail: currentUser.email || '',
-      withdrawalUserId: currentUser.uid,
-      withdrawalSolarId: userData.myId || ''
-    });
-    // Update the local balance
-    balance = currentBalance - a;
-    updateUI();
-    alert(
-      '✅ Withdrawal request submitted!\n\n' +
-      'Amount: ' + a + 'F\n' +
-      'MoMo: ' + userMoMo + '\n\n' +
-      'Your withdrawal is now pending admin approval.'
-    );
-  } catch (error) {
-    console.error('Withdrawal error:', error);
-    alert('❌ Withdrawal failed. Please try again.');
-  }
+try {
+const userMoMo = document.getElementById('userMoMoInput').value.trim();
+
+if (!userMoMo) {
+  alert('Enter your MoMo number');
+  return;
+}
+let a = prompt(
+  'Balance: ' + balance + 'F\nMin 1,000F Max 100,000F\nEnter amount:',
+  '1000'
+);
+if (!a) return;
+a = parseInt(a);
+if (isNaN(a) || a < 1000 || a > 100000 || a > balance) {
+  alert('Invalid amount');
+  return;
+}
+if (!currentUser) {
+  alert('Please log in again');
+  return;
+}
+// Get the latest user data from Firebase
+const userRef = doc(db, "users", currentUser.uid);
+const userSnap = await getDoc(userRef);
+if (!userSnap.exists()) {
+  alert('User account not found');
+  return;
+}
+const userData = userSnap.data();
+const currentBalance = Number(userData.balance || 0);
+// Prevent withdrawing more than the real Firebase balance
+if (a > currentBalance) {
+  alert('Insufficient balance');
+  return;
+}
+// Prevent another withdrawal while one is pending
+if (userData.withdrawalStatus === 'pending') {
+  alert(
+    'You already have a pending withdrawal. Please wait for it to be processed.'
+  );
+  return;
+}
+// Create a unique withdrawal request
+const withdrawalRef = doc(collection(db, "withdrawals"));
+// Create withdrawal request for admin
+await setDoc(withdrawalRef, {
+  withdrawalId: withdrawalRef.id,
+  userId: currentUser.uid,
+  userEmail: currentUser.email || '',
+  solarId: userData.myId || '',
+  amount: a,
+  momoNumber: userMoMo,
+  status: 'pending',
+  requestedAt: new Date()
+});
+// Reserve/deduct the amount from the user's Firebase balance
+await updateDoc(userRef, {
+  balance: currentBalance - a,
+  withdrawalStatus: 'pending',
+  withdrawalAmount: a,
+  withdrawalMoMo: userMoMo,
+  withdrawalRequestedAt: new Date(),
+  withdrawalUserEmail: currentUser.email || '',
+  withdrawalUserId: currentUser.uid,
+  withdrawalSolarId: userData.myId || '',
+  withdrawalRequestId: withdrawalRef.id
+});
+// Update local balance
+balance = currentBalance - a;
+updateUI();
+alert(
+  '✅ Withdrawal request submitted!\n\n' +
+  'Amount: ' + a + 'F\n' +
+  'MoMo: ' + userMoMo + '\n\n' +
+  'Your withdrawal is now pending admin approval.'
+);
+
+} catch (error) {
+console.error('Withdrawal error:', error);
+alert('❌ Withdrawal failed. Please try again.');
+}
 };
+
 
 updateUI();
 </script>
