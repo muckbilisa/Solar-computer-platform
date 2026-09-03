@@ -368,13 +368,72 @@ window.doTask = async (type,amount) => {
 };
 
 window.spinWheel = async () => {
-  if(localStorage.getItem('activated')!=='true'){ alert('Buy first!'); return; }
-  let prizes=[50,100,150,200,300,500];
-  let win=prizes[Math.floor(Math.random()*prizes.length)];
-  balance+=win; totalEarned+=win;
-  await updateDoc(doc(db, "users", currentUser.uid), { balance: balance, totalEarned: totalEarned });
-  updateUI();
-  alert('🎉 YOU WON '+win+'F! Balance: '+balance);
+  if (!currentUser) {
+    alert('Please login first');
+    return;
+  }
+
+  try {
+    const userRef = doc(db, "users", currentUser.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      alert('User account not found');
+      return;
+    }
+
+    const userData = userSnap.data();
+
+    // Account must be activated first
+    if (userData.activated !== true) {
+      alert(
+        '🔒 ACCOUNT LOCKED\n\n' +
+        'Your account must be activated before you can use the spin wheel.'
+      );
+      switchTab('home');
+      return;
+    }
+
+    // ONE SPIN ONLY EVER
+    if (userData.spinUsed === true) {
+      alert(
+        '🎡 SPIN ALREADY USED\n\n' +
+        'You have already used your one spin.'
+      );
+      return;
+    }
+
+    const prizes = [50, 100, 150, 200, 300, 500];
+    const win = prizes[Math.floor(Math.random() * prizes.length)];
+
+    const currentBalance = Number(userData.balance || 0);
+    const currentTotalEarned = Number(userData.totalEarned || 0);
+
+    const newBalance = currentBalance + win;
+    const newTotalEarned = currentTotalEarned + win;
+
+    // Save the reward and permanently mark the spin as used
+    await updateDoc(userRef, {
+      balance: newBalance,
+      totalEarned: newTotalEarned,
+      spinUsed: true
+    });
+
+    balance = newBalance;
+    totalEarned = newTotalEarned;
+
+    updateUI();
+
+    alert(
+      '🎉 YOU WON ' + win + 'F!\n\n' +
+      'This was your one and only spin.\n' +
+      'Balance: ' + balance + 'F'
+    );
+
+  } catch (error) {
+    console.error('Spin wheel error:', error);
+    alert('❌ Spin failed. Please try again.');
+  }
 };
 
 window.withdraw = async () => {
