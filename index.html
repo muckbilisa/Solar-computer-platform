@@ -285,6 +285,11 @@ window.switchTab = (t) => {
   document.getElementById('tab-'+t).classList.remove('hidden');
   document.querySelectorAll('[id^=nav-]').forEach(e=>e.classList.remove('tab-active'));
   document.getElementById('nav-'+t).classList.add('tab-active');
+
+  if (t === 'wallet') {
+    loadWithdrawalHistory();
+  }
+
   window.scrollTo(0,0);
 };
 
