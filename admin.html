@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solar Admin - Payments & Withdrawals</title>
+<style>
+body{
+  font-family:Arial,sans-serif;
+  padding:15px;
+  background:#0f0f0f;
+  color:#fff;
+}
+h1{
+  color:#00e676;
+}
+.card,
+.withdraw-card{
+  background:#1e1e1e;
+  padding:15px;
+  margin:15px 0;
+  border-radius:12px;
+  animation:pop .3s;
+}
+.card{
+  border-left:4px solid #00e676;
+}
+.withdraw-card{
+  border-left:4px solid #ffd700;
+}
+@keyframes pop{
+  0%{transform:scale(.9)}
+  100%{transform:scale(1)}
+}
+button{
+  padding:14px;
+  border:0;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+  margin:5px;
+}
+.approve{
+  background:#00e676;
+  color:#000;
+  font-size:18px;
+  width:100%;
+}
+.reject{
+  background:#333;
+  color:#ff4444;
+  border:1px solid #ff4444;
+  font-size:18px;
+  width:100%;
+}
+.nav{
+  display:flex;
+  gap:8px;
+  margin:15px 0;
+}
+.nav-btn{
+  background:#222;
+  color:#fff;
+  border:1px solid #444;
+  width:50%;
+  font-size:15px;
+  position:relative;
+}
+.nav-btn.active{
+  background:#00e676;
+  color:#000;
+  border-color:#00e676;
+}
+.withdraw-badge{
+  position:absolute;
+  top:-8px;
+  right:-5px;
+  background:red;
+  color:white;
+  min-width:22px;
+  height:22px;
+  border-radius:50%;
+  font-size:12px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+.top{
+  position:sticky;
+  top:0;
+  background:#0f0f0f;
+  padding:10px 0;
+  z-index:9;
+}
+.empty{
+  color:#777;
+  margin-top:30px;
+  text-align:center;
+}
+.section-title{
+  font-size:18px;
+  font-weight:bold;
+  margin:20px 0 10px;
+}
+.info{
+  line-height:1.8;
+  color:#ccc;
+}
+.amount{
+  color:#ffd700;
+  font-size:24px;
+  font-weight:bold;
+}
+.phone{
+  color:#00e676;
+  font-size:20px;
+  font-weight:bold;
+}
+.hidden{
+  display:none;
+}
+.badge{
+  background:#00e676;
+  color:#000;
+  padding:6px 12px;
+  border-radius:20px;
+  font-weight:bold;
+}
+.live-status{
+  color:#aaa;
+  font-size:13px;
+  margin-left:8px;
+}
+.sound-btn{
+  width:100%;
+  background:#222;
+  color:#fff;
+  border:1px solid #555;
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+<div class="top">
+<h1>⚡ Solar Admin LIVE</h1>
+<div style="margin:10px 0;">
+  <a href="index.html" style="color:#00e676;text-decoration:none;">
+    ← Back to Site
+  </a>
+</div>
+<!-- NAVIGATION BUTTONS -->
+<div class="nav">
+  <button
+    id="paymentsBtn"
+    class="nav-btn active"
+    onclick="showSection('payments')">
+    💳 Payments
+  </button>
+  <button
+    id="withdrawalsBtn"
+    class="nav-btn"
+    onclick="showSection('withdrawals')">
+    💸 Withdrawals
+    <span
+      id="withdrawBadge"
+      class="withdraw-badge">
+      0
+    </span>
+  </button>
+</div>
+<div id="paymentStatusBar">
+  <span
+    class="badge"
+    id="count">
+    0 pending
+  </span>
+  <span
+    id="status"
+    class="live-status">
+    🔊 Sound OFF
+  </span>
+</div>
+<button
+  class="sound-btn"
+  onclick="enableSound()">
+  🔔 Enable Notifications & Sound
+</button>
+</div>
+<!-- =========================
+     PAYMENTS SECTION
+========================= -->
+<div id="paymentsSection">
+  <div class="section-title">
+    💳 Pending Payments
+  </div>
+  <div id="orders">
+    Waiting for payments...
+  </div>
+</div>
+<!-- =========================
+     WITHDRAWALS SECTION
+========================= -->
+<div
+  id="withdrawalsSection"
+  class="hidden">
+  <div class="section-title">
+    💸 Withdrawal Requests
+  </div>
+  <div>
+    <span
+      class="badge"
+      id="withdrawalCount">
+      0 pending withdrawals
+    </span>
+  </div>
+  <div id="withdrawals">
+    Checking withdrawals...
+  </div>
+</div>
+<!-- SOUND -->
+<audio
+  id="beep"
+  preload="auto">
+  <source
+    src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"
+    type="audio/ogg">
+</audio>
+<script type="module">
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+/* =========================
+   FIREBASE
+========================= */
+const firebaseConfig = {
+  apiKey:
+  "AIzaSyBpeaYd1u9HmPqU5H4oT8FYpMqU5H4oT8FYpM",
+  authDomain:
+  "solar-platform-4e199.firebaseapp.com",
+  projectId:
+  "solar-platform-4e199",
+  storageBucket:
+  "solar-platform-4e199.firebasestorage.app",
+  messagingSenderId:
+  "1064154251819",
+  appId:
+  "1:1064154251819:web:5825f9e77b361ec8a7e"
+};
+const app =
+  initializeApp(firebaseConfig);
+const db =
+  getFirestore(app);
+let lastPaymentCount = 0;
+let lastWithdrawalCount = 0;
+let soundEnabled = false;
+/* =========================
+   SECTION SWITCHER
+========================= */
+window.showSection = (section) => {
+  const payments =
+    document.getElementById(
+      "paymentsSection"
+    );
+  const withdrawals =
+    document.getElementById(
+      "withdrawalsSection"
+    );
+  const paymentsBtn =
+    document.getElementById(
+      "paymentsBtn"
+    );
+  const withdrawalsBtn =
+    document.getElementById(
+      "withdrawalsBtn"
+    );
+  if(section === "payments"){
+    payments.classList.remove(
+      "hidden"
+    );
+    withdrawals.classList.add(
+      "hidden"
+    );
+    paymentsBtn.classList.add(
+      "active"
+    );
+    withdrawalsBtn.classList.remove(
+      "active"
+    );
+  }
+  if(section === "withdrawals"){
+    payments.classList.add(
+      "hidden"
+    );
+    withdrawals.classList.remove(
+      "hidden"
+    );
+    paymentsBtn.classList.remove(
+      "active"
+    );
+    withdrawalsBtn.classList.add(
+      "active"
+    );
+    loadWithdrawals();
+  }
+};
+/* =========================
+   ENABLE SOUND
+========================= */
+window.enableSound = async () => {
+  soundEnabled = true;
+  const beep =
+    document.getElementById("beep");
+  if(beep){
+    beep.play()
+      .catch(() => {});
+  }
+  if(
+    typeof Notification !== "undefined" &&
+    Notification.permission !== "granted"
+  ){
+    await Notification.requestPermission();
+  }
+  document.getElementById(
+    "status"
+  ).innerText =
+    "🔊 LIVE - Sound & Notifications ON";
+  alert(
+    "✅ Notifications and sound enabled!\n\n" +
+    "Keep this admin page open."
+  );
+};
+/* =========================
+   LOAD PAYMENTS
+========================= */
+async function loadOrders(){
+  try{
+    const snap =
+      await getDocs(
+        collection(
+          db,
+          "users"
+        )
+      );
+    let html = "";
+    let count = 0;
+    snap.forEach(d => {
+      const u =
+        d.data();
+      if(
+        u.paymentStatus ===
+        "pending"
+      ){
+        count++;
+        const accountStatus =
+          u.activated === true
+          ? "🟢 ACCOUNT ALREADY ACTIVE"
+          : "🔒 ACCOUNT LOCKED";
+        const referral =
+          u.referredBy ||
+          "No referral";
+        html += `
+        <div class="card">
+          <b>
+            👤 ${u.email || ""}
+          </b>
+          <br><br>
+          <span style="color:#00e676">
+            ${accountStatus}
+          </span>
+          <br><br>
+          Product:
+          <b>
+            ${u.lastPurchase || ""}
+          </b>
+          <br>
+          Amount:
+          <b style="
+            color:#00e676;
+            font-size:20px">
+            ${u.pendingAmount || 0}
+            FCFA
+          </b>
+          <br>
+          MoMo ID:
+          <b style="
+            color:yellow;
+            font-size:22px">
+            ${u.momoTransactionId || ""}
+          </b>
+          <br>
+          MyID:
+          ${u.myId || ""}
+          <br>
+          Referred By:
+          <b style="
+            color:#ffd700">
+            ${referral}
+          </b>
+          <br><br>
+          <button
+            class="approve"
+            onclick="approveUser('${d.id}')">
+            ✅ APPROVE PAYMENT
+          </button>
+          <button
+            class="reject"
+            onclick="rejectUser('${d.id}')">
+            ❌ REJECT PAYMENT
+          </button>
+        </div>
+        `;
+      }
+    });
+    if(count === 0){
+      html =
+      "<p class='empty'>" +
+      "😴 No pending payments." +
+      "<br><br>" +
+      "Waiting for new payment..." +
+      "</p>";
+    }
+    document.getElementById(
+      "orders"
+    ).innerHTML =
+      html;
+    document.getElementById(
+      "count"
+    ).innerText =
+      count +
+      " pending";
+    /* NEW PAYMENT ALERT */
+    if(
+      count >
+      lastPaymentCount &&
+      soundEnabled
+    ){
+      const beep =
+        document.getElementById(
+          "beep"
+        );
+      if(beep){
+        beep.play()
+          .catch(() => {});
+      }
+      if(
+        navigator.vibrate
+      ){
+        navigator.vibrate([
+          500,
+          200,
+          500
+        ]);
+      }
+      if(
+        typeof Notification !==
+        "undefined" &&
+        Notification.permission ===
+        "granted"
+      ){
+        new Notification(
+          "💰 New Payment!",
+          {
+            body:
+            count +
+            " payment(s) waiting for approval."
+          }
+        );
+      }
+    }
+    lastPaymentCount =
+      count;
+  }catch(error){
+    console.error(
+      "Loading payments error:",
+      error
+    );
+  }
+}
+/* =========================
+   LOAD WITHDRAWALS
+========================= */
+async function loadWithdrawals(){
+  try{
+    const snap =
+      await getDocs(
+        collection(
+          db,
+          "withdrawals"
+        )
+      );
+    let withdrawals = [];
+    snap.forEach(d => {
+      const w =
+        d.data();
+      if(
+        w.status ===
+        "pending"
+      ){
+        withdrawals.push({
+          id:
+            d.id,
+          ...w
+        });
+      }
+    });
+    /* NEWEST FIRST */
+    withdrawals.sort(
+      (a,b) => {
+        const dateA =
+          a.requestedAt?.toDate
+          ? a.requestedAt.toDate()
+          : new Date(
+              a.requestedAt || 0
+            );
+        const dateB =
+          b.requestedAt?.toDate
+          ? b.requestedAt.toDate()
+          : new Date(
+              b.requestedAt || 0
+            );
+        return dateB - dateA;
+      }
+    );
+    const count =
+      withdrawals.length;
+    document.getElementById(
+      "withdrawalCount"
+    ).innerText =
+      count +
+      (
+        count === 1
+        ? " pending withdrawal"
+        : " pending withdrawals"
+      );
+    /* RED BADGE */
+    const badge =
+      document.getElementById(
+        "withdrawBadge"
+      );
+    if(count > 0){
+      badge.style.display =
+        "flex";
+      badge.innerText =
+        count;
+    }else{
+      badge.style.display =
+        "none";
+    }
+    let html = "";
+    if(count === 0){
+      html =
+      "<p class='empty'>" +
+      "😴 No pending withdrawals." +
+      "<br><br>" +
+      "Waiting for withdrawal requests..." +
+      "</p>";
+    }
+    withdrawals.forEach(
+      w => {
+        const amount =
+          Number(
+            w.amount || 0
+          );
+        let dateText =
+          "Unknown date";
+        if(
+          w.requestedAt
+        ){
+          const date =
+            w.requestedAt.toDate
+            ? w.requestedAt.toDate()
+            : new Date(
+                w.requestedAt
+              );
+          dateText =
+            date.toLocaleString();
+        }
+        html += `
+        <div class="withdraw-card">
+          <div style="
+            font-size:11px;
+            color:#ffd700;
+            font-weight:bold">
+            💸 WITHDRAWAL REQUEST
+          </div>
+          <br>
+          <div class="amount">
+            ${amount.toLocaleString()}
+            FCFA
+          </div>
+          <br>
+          <div class="info">
+            👤 User:
+            <b style="color:white">
+              ${w.userEmail || "Unknown"}
+            </b>
+            <br>
+            🆔 Solar ID:
+            <b style="color:#00e676">
+              ${w.solarId || "N/A"}
+            </b>
+            <br>
+            📱 MoMo:
+            <span class="phone">
+              ${w.momoNumber || "N/A"}
+            </span>
+            <br>
+            🕐 Requested:
+            <span style="color:#aaa">
+              ${dateText}
+            </span>
+            <br>
+            🔖 Request ID:
+            <span style="
+              color:#777;
+              font-size:9px;
+              word-break:break-all">
+              ${w.withdrawalId || w.id}
+            </span>
+          </div>
+          <br>
+          <button
+            class="approve"
+            onclick="approveWithdrawal('${w.id}')">
+            ✅ APPROVE WITHDRAWAL
+          </button>
+          <button
+            class="reject"
+            onclick="rejectWithdrawal('${w.id}')">
+            ❌ REJECT & RETURN MONEY
+          </button>
+        </div>
+        `;
+      }
+    );
+    document.getElementById(
+      "withdrawals"
+    ).innerHTML =
+      html;
+    /* NEW WITHDRAWAL ALERT */
+    if(
+      count >
+      lastWithdrawalCount &&
+      soundEnabled
+    ){
+      const beep =
+        document.getElementById(
+          "beep"
+        );
+      if(beep){
+        beep.play()
+          .catch(() => {});
+      }
+      if(
+        navigator.vibrate
+      ){
+        navigator.vibrate([
+          700,
+          200,
+          700
+        ]);
+      }
+      if(
+        typeof Notification !==
+        "undefined" &&
+        Notification.permission ===
+        "granted"
+      ){
+        new Notification(
+          "💸 New Withdrawal!",
+          {
+            body:
+            count +
+            " withdrawal request(s) waiting."
+          }
+        );
+      }
+    }
+    lastWithdrawalCount =
+      count;
+  }catch(error){
+    console.error(
+      "Loading withdrawals error:",
+      error
+    );
+    document.getElementById(
+      "withdrawals"
+    ).innerHTML = `
+      <p
+        class="empty"
+        style="color:#ff4444">
+        ❌ Unable to load withdrawals.
+        <br><br>
+        ${error.message}
+      </p>
+    `;
+  }
+}
+/* =========================
+   APPROVE WITHDRAWAL
+========================= */
+window.approveWithdrawal =
+async(id) => {
+  if(
+    !confirm(
+      "Approve this withdrawal?\n\n" +
+      "Only approve if you are ready to send the money to the user's MoMo number."
+    )
+  ){
+    return;
+  }
+  try{
+    const withdrawalRef =
+      doc(
+        db,
+        "withdrawals",
+        id
+      );
+    const withdrawalSnap =
+      await getDoc(
+        withdrawalRef
+      );
+    if(
+      !withdrawalSnap.exists()
+    ){
+      alert(
+        "❌ Withdrawal request not found."
+      );
+      return;
+    }
+    const withdrawal =
+      withdrawalSnap.data();
+    if(
+      withdrawal.status !==
+      "pending"
+    ){
+      alert(
+        "This withdrawal has already been processed."
+      );
+      await loadWithdrawals();
+      return;
+    }
+    await updateDoc(
+      withdrawalRef,
+      {
+        status:
+          "approved",
+        processedAt:
+          new Date(),
+        processedBy:
+          "admin"
+      }
+    );
+    /* UPDATE USER STATUS */
+    if(
+      withdrawal.userId
+    ){
+      const userRef =
+        doc(
+          db,
+          "users",
+          withdrawal.userId
+        );
+      const userSnap =
+        await getDoc(
+          userRef
+        );
+      if(
+        userSnap.exists()
+      ){
+        await updateDoc(
+          userRef,
+          {
+            withdrawalStatus:
+              "approved",
+            withdrawalProcessedAt:
+              new Date()
+          }
+        );
+      }
+    }
+    alert(
+      "✅ WITHDRAWAL APPROVED!\n\n" +
+      "Amount: " +
+      Number(
+        withdrawal.amount || 0
+      ).toLocaleString() +
+      " FCFA\n\n" +
+      "MoMo: " +
+      (
+        withdrawal.momoNumber ||
+        ""
+      )
+    );
+    await loadWithdrawals();
+  }catch(error){
+    console.error(
+      "Approve withdrawal error:",
+      error
+    );
+    alert(
+      "❌ Approval failed.\n\n" +
+      error.message
+    );
+  }
+};
+/* =========================
+   REJECT WITHDRAWAL
+========================= */
+window.rejectWithdrawal =
+async(id) => {
+  if(
+    !confirm(
+      "Reject this withdrawal?\n\n" +
+      "The requested amount will be returned to the user's balance."
+    )
+  ){
+    return;
+  }
+  try{
+    const withdrawalRef =
+      doc(
+        db,
+        "withdrawals",
+        id
+      );
+    const withdrawalSnap =
+      await getDoc(
+        withdrawalRef
+      );
+    if(
+      !withdrawalSnap.exists()
+    ){
+      alert(
+        "❌ Withdrawal request not found."
+      );
+      return;
+    }
+    const withdrawal =
+      withdrawalSnap.data();
+    if(
+      withdrawal.status !==
+      "pending"
+    ){
+      alert(
+        "This withdrawal has already been processed."
+      );
+      await loadWithdrawals();
+      return;
+    }
+    const userId =
+      withdrawal.userId;
+    const amount =
+      Number(
+        withdrawal.amount || 0
+      );
+    /* RETURN MONEY */
+    if(
+      userId &&
+      amount > 0
+    ){
+      const userRef =
+        doc(
+          db,
+          "users",
+          userId
+        );
+      const userSnap =
+        await getDoc(
+          userRef
+        );
+      if(
+        !userSnap.exists()
+      ){
+        alert(
+          "❌ User account could not be found.\n\n" +
+          "The withdrawal was NOT rejected so the money is not lost."
+        );
+        return;
+      }
+      const userData =
+        userSnap.data();
+      const currentBalance =
+        Number(
+          userData.balance || 0
+        );
+      await updateDoc(
+        userRef,
+        {
+          balance:
+            currentBalance +
+            amount,
+          withdrawalStatus:
+            "rejected",
+          withdrawalProcessedAt:
+            new Date()
+        }
+      );
+    }
+    /* MARK REJECTED */
+    await updateDoc(
+      withdrawalRef,
+      {
+        status:
+          "rejected",
+        processedAt:
+          new Date(),
+        processedBy:
+          "admin"
+      }
+    );
+    alert(
+      "❌ WITHDRAWAL REJECTED.\n\n" +
+      amount.toLocaleString() +
+      " FCFA has been returned to the user's balance."
+    );
+    await loadWithdrawals();
+  }catch(error){
+    console.error(
+      "Reject withdrawal error:",
+      error
+    );
+    alert(
+      "❌ Rejection failed.\n\n" +
+      error.message
+    );
+  }
+};
+/* =========================
+   APPROVE PAYMENT
+========================= */
+window.approveUser =
+async(id) => {
+  if(
+    !confirm(
+      "Confirm that you received the MoMo payment?\n\n" +
+      "Only approve if you have verified the transaction."
+    )
+  ){
+    return;
+  }
+  try{
+    const snap =
+      await getDocs(
+        collection(
+          db,
+          "users"
+        )
+      );
+    let buyerData =
+      null;
+    snap.forEach(d => {
+      if(
+        d.id === id
+      ){
+        buyerData =
+          d.data();
+      }
+    });
+    if(!buyerData){
+      alert(
+        "User account could not be found."
+      );
+      return;
+    }
+    const buyerRef =
+      doc(
+        db,
+        "users",
+        id
+      );
+    const wasAlreadyActivated =
+      buyerData.activated === true;
+    let buyerBalance =
+      Number(
+        buyerData.balance || 0
+      );
+    let buyerTotalEarned =
+      Number(
+        buyerData.totalEarned || 0
+      );
+    if(
+      !wasAlreadyActivated
+    ){
+      buyerBalance +=
+        1500;
+      buyerTotalEarned +=
+        1500;
+    }
+    await updateDoc(
+      buyerRef,
+      {
+        activated:
+          true,
+        paymentStatus:
+          "approved",
+        balance:
+          buyerBalance,
+        totalEarned:
+          buyerTotalEarned,
+        approvedAt:
+          new Date()
+      }
+    );
+    /* REFERRAL BONUS */
+    const referralId =
+      buyerData.referredBy;
+    if(
+      referralId &&
+      referralId.trim() !== ""
+    ){
+      let referrerDoc =
+        null;
+      snap.forEach(d => {
+        const u =
+          d.data();
+        if(
+          u.myId &&
+          u.myId ===
+          referralId.trim()
+        ){
+          referrerDoc =
+            d;
+        }
+      });
+      if(
+        referrerDoc
+      ){
+        const referrerData =
+          referrerDoc.data();
+        let referrerBalance =
+          Number(
+            referrerData.balance ||
+            0
+          );
+        let referrerTotalEarned =
+          Number(
+            referrerData.totalEarned ||
+            0
+          );
+        const purchaseAmount =
+          Number(
+            buyerData.pendingAmount ||
+            0
+          );
+        const referralBonus =
+          Math.floor(
+            purchaseAmount *
+            0.10
+          );
+        if(
+          referralBonus > 0
+        ){
+          referrerBalance +=
+            referralBonus;
+          referrerTotalEarned +=
+            referralBonus;
+          await updateDoc(
+            doc(
+              db,
+              "users",
+              referrerDoc.id
+            ),
+            {
+              balance:
+                referrerBalance,
+              totalEarned:
+                referrerTotalEarned,
+              lastReferralBonus:
+                referralBonus,
+              lastReferralFrom:
+                buyerData.email ||
+                "",
+              lastReferralAt:
+                new Date()
+            }
+          );
+        }
+      }
+    }
+    alert(
+      "✅ PAYMENT APPROVED!\n\n" +
+      "The account has been activated.\n\n" +
+      (
+        wasAlreadyActivated
+        ? "Existing active account: purchase approved."
+        : "1,500F activation bonus added."
+      )
+    );
+    await loadOrders();
+  }catch(error){
+    console.error(
+      "Approval error:",
+      error
+    );
+    alert(
+      "❌ Approval failed.\n\n" +
+      error.message
+    );
+  }
+};
+/* =========================
+   REJECT PAYMENT
+========================= */
+window.rejectUser =
+async(id) => {
+  if(
+    !confirm(
+      "Reject this payment?"
+    )
+  ){
+    return;
+  }
+  try{
+    await updateDoc(
+      doc(
+        db,
+        "users",
+        id
+      ),
+      {
+        paymentStatus:
+          "rejected",
+        activated:
+          false
+      }
+    );
+    await loadOrders();
+  }catch(error){
+    console.error(
+      "Reject error:",
+      error
+    );
+    alert(
+      "❌ Could not reject payment.\n\n" +
+      error.message
+    );
+  }
+};
+/* =========================
+   START
+========================= */
+loadOrders();
+loadWithdrawals();
+/* REFRESH EVERY 4 SECONDS */
+setInterval(
+  loadOrders,
+  4000
+);
+setInterval(
+  loadWithdrawals,
+  4000
+);
+</script>
+</body>
+</html>
